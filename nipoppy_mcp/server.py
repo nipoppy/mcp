@@ -14,6 +14,28 @@ mcp = FastMCP("Nipoppy Dataset Server", log_level="DEBUG")
 
 
 @mcp.tool()
+def list_installed_pipelines(nipoppy_root: Path) -> dict[str, dict[str, list[str]]]:
+    """
+    List installed Nipoppy pipelines.
+
+    Args:
+        nipoppy_root: Path to the Nipoppy dataset root.
+
+    Returns:
+        A dictionary mapping pipeline types to pipeline names and their versions.
+    """
+
+    from nipoppy.workflows.pipeline_store.list import PipelineListWorkflow
+
+    workflow = PipelineListWorkflow(dpath_root=nipoppy_root)
+    pipeline_info_map = {
+        k.value: v for k, v in workflow._get_pipeline_info_map().items()
+    }
+
+    return pipeline_info_map
+
+
+@mcp.tool()
 def list_files(directory_path: str) -> List[str]:
     """
     List files in a directory.

@@ -5,7 +5,7 @@ description = "Model Context Protocol interface for Nipoppy neuroimaging dataset
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-dependencies = ["mcp"]
+dependencies = ["mcp", "nipoppy>=0.4.3"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
