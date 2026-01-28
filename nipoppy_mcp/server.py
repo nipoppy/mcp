@@ -14,9 +14,9 @@ mcp = FastMCP("Nipoppy Dataset Server", log_level="DEBUG")
 
 
 @mcp.tool()
-def list_installed_pipelines(nipoppy_root: Path) -> dict[str, dict[str, list[str]]]:
+def get_installed_pipelines(nipoppy_root: Path) -> dict[str, dict[str, list[str]]]:
     """
-    List installed Nipoppy pipelines.
+    Get installed Nipoppy pipelines.
 
     Args:
         nipoppy_root: Path to the Nipoppy dataset root.
@@ -33,6 +33,35 @@ def list_installed_pipelines(nipoppy_root: Path) -> dict[str, dict[str, list[str
     }
 
     return pipeline_info_map
+
+
+@mcp.tool()
+def list_processed_participants_sessions(
+    nipoppy_root: Path, pipeline_name: str, pipeline_version: str
+) -> list[tuple[str, str]]:
+    """
+    Get completed participants and sessions for a given processing pipeline.
+
+    Args:
+        nipoppy_root: Path to the Nipoppy dataset root.
+        pipeline_name: Name of the pipeline.
+        pipeline_version: Version of the pipeline.
+
+    Returns:
+        A list of tuples containing participant IDs and session IDs.
+    """
+    from nipoppy.study import Study
+    from nipoppy.layout import DatasetLayout
+
+    study = Study(layout=DatasetLayout(nipoppy_root))
+    return [
+        tuple(participant_status)
+        for participant_status in study.processing_status_table.get_completed_participants_sessions(
+            pipeline_name=pipeline_name,
+            pipeline_version=pipeline_version,
+            pipeline_step="default",
+        )
+    ]
 
 
 @mcp.tool()
