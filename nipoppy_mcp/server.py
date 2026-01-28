@@ -42,6 +42,16 @@ def _read_text_file(file_path: Path) -> str:
         raise FileNotFoundError(f"File not found: {file_path}")
 
 
+def _validate_path_within_root(root: Path, target: Path) -> bool:
+    """Validate that target path is within root directory (prevent directory traversal)."""
+    try:
+        resolved_root = root.resolve()
+        resolved_target = target.resolve()
+        return resolved_target.is_relative_to(resolved_root)
+    except (ValueError, OSError):
+        return False
+
+
 @mcp.tool()
 def get_dataset_info(dataset_root: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -64,11 +74,17 @@ def get_dataset_info(dataset_root: Optional[str] = None) -> Dict[str, Any]:
             "dataset_root": str(root)
         }
     
-    config = _read_json_file(config_path)
-    return {
-        "dataset_root": str(root),
-        "config": config
-    }
+    try:
+        config = _read_json_file(config_path)
+        return {
+            "dataset_root": str(root),
+            "config": config
+        }
+    except (ValueError, IOError, OSError) as e:
+        return {
+            "error": f"Failed to read configuration: {e}",
+            "config_path": str(config_path)
+        }
 
 
 @mcp.tool()
@@ -99,24 +115,30 @@ def get_manifest(dataset_root: Optional[str] = None, max_rows: int = 100) -> Dic
             "dataset_root": str(root)
         }
     
-    content = _read_text_file(manifest_path)
-    lines = content.split('\n')
-    
-    # Limit rows if needed
-    if len(lines) > max_rows + 1:  # +1 for header
-        lines = lines[:max_rows + 1]
-        truncated = True
-    else:
-        truncated = False
-    
-    return {
-        "dataset_root": str(root),
-        "manifest_path": str(manifest_path),
-        "content": '\n'.join(lines),
-        "total_lines": len(content.split('\n')),
-        "returned_lines": len(lines),
-        "truncated": truncated
-    }
+    try:
+        content = _read_text_file(manifest_path)
+        lines = content.split('\n')
+        
+        # Limit rows if needed
+        if len(lines) > max_rows + 1:  # +1 for header
+            lines = lines[:max_rows + 1]
+            truncated = True
+        else:
+            truncated = False
+        
+        return {
+            "dataset_root": str(root),
+            "manifest_path": str(manifest_path),
+            "content": '\n'.join(lines),
+            "total_lines": len(content.split('\n')),
+            "returned_lines": len(lines),
+            "truncated": truncated
+        }
+    except (IOError, OSError) as e:
+        return {
+            "error": f"Failed to read manifest: {e}",
+            "manifest_path": str(manifest_path)
+        }
 
 
 @mcp.tool()
@@ -140,15 +162,25 @@ def list_pipelines(dataset_root: Optional[str] = None) -> Dict[str, Any]:
         }
     
     pipelines = []
-    for item in pipelines_dir.iterdir():
-        if item.is_dir():
-            # List config files in each pipeline directory
-            config_files = [f.name for f in item.iterdir() if f.is_file()]
-            pipelines.append({
-                "name": item.name,
-                "path": str(item),
-                "config_files": config_files
-            })
+    try:
+        for item in pipelines_dir.iterdir():
+            if item.is_dir():
+                # List config files in each pipeline directory
+                try:
+                    config_files = [f.name for f in item.iterdir() if f.is_file()]
+                except (PermissionError, OSError):
+                    config_files = ["<permission denied>"]
+                
+                pipelines.append({
+                    "name": item.name,
+                    "path": str(item),
+                    "config_files": config_files
+                })
+    except (PermissionError, OSError) as e:
+        return {
+            "error": f"Failed to list pipelines: {e}",
+            "pipelines_directory": str(pipelines_dir)
+        }
     
     return {
         "dataset_root": str(root),
@@ -192,21 +224,27 @@ def get_pipeline_config(pipeline_name: str, config_file: str,
                 "config_path": str(config_path),
                 "config": config
             }
-        except Exception as e:
+        except (json.JSONDecodeError, IOError, OSError) as e:
             return {
                 "error": f"Failed to parse JSON: {e}",
                 "config_path": str(config_path)
             }
     else:
         # Return as text for non-JSON files
-        content = _read_text_file(config_path)
-        return {
-            "dataset_root": str(root),
-            "pipeline_name": pipeline_name,
-            "config_file": config_file,
-            "config_path": str(config_path),
-            "content": content
-        }
+        try:
+            content = _read_text_file(config_path)
+            return {
+                "dataset_root": str(root),
+                "pipeline_name": pipeline_name,
+                "config_file": config_file,
+                "config_path": str(config_path),
+                "content": content
+            }
+        except (IOError, OSError) as e:
+            return {
+                "error": f"Failed to read file: {e}",
+                "config_path": str(config_path)
+            }
 
 
 @mcp.tool()
@@ -233,18 +271,27 @@ def list_subjects(dataset_root: Optional[str] = None,
     
     # Look for subject directories (starting with 'sub-')
     subjects = []
-    for item in target_dir.iterdir():
-        if item.is_dir() and item.name.startswith('sub-'):
-            # Get sessions if they exist
-            sessions = []
-            for session in item.iterdir():
-                if session.is_dir() and session.name.startswith('ses-'):
-                    sessions.append(session.name)
-            
-            subjects.append({
-                "subject_id": item.name,
-                "sessions": sessions if sessions else None
-            })
+    try:
+        for item in target_dir.iterdir():
+            if item.is_dir() and item.name.startswith('sub-'):
+                # Get sessions if they exist
+                sessions = []
+                try:
+                    for session in item.iterdir():
+                        if session.is_dir() and session.name.startswith('ses-'):
+                            sessions.append(session.name)
+                except (PermissionError, OSError):
+                    sessions = []
+                
+                subjects.append({
+                    "subject_id": item.name,
+                    "sessions": sessions if sessions else None
+                })
+    except (PermissionError, OSError) as e:
+        return {
+            "error": f"Failed to list subjects: {e}",
+            "directory": str(target_dir)
+        }
     
     return {
         "dataset_root": str(root),
@@ -330,6 +377,14 @@ def list_files_in_directory(dataset_root: Optional[str] = None,
     root = Path(dataset_root) if dataset_root else _get_dataset_root()
     target_dir = root / subdirectory if subdirectory else root
     
+    # Validate path to prevent directory traversal
+    if not _validate_path_within_root(root, target_dir):
+        return {
+            "error": "Invalid path: directory traversal not allowed",
+            "dataset_root": str(root),
+            "subdirectory": subdirectory
+        }
+    
     if not target_dir.exists():
         return {
             "error": f"Directory not found: {target_dir}",
@@ -338,12 +393,18 @@ def list_files_in_directory(dataset_root: Optional[str] = None,
         }
     
     items = []
-    for item in target_dir.iterdir():
-        items.append({
-            "name": item.name,
-            "type": "directory" if item.is_dir() else "file",
-            "path": str(item.relative_to(root))
-        })
+    try:
+        for item in target_dir.iterdir():
+            items.append({
+                "name": item.name,
+                "type": "directory" if item.is_dir() else "file",
+                "path": str(item.relative_to(root))
+            })
+    except (PermissionError, OSError) as e:
+        return {
+            "error": f"Failed to list directory: {e}",
+            "directory": str(target_dir)
+        }
     
     return {
         "dataset_root": str(root),
@@ -368,6 +429,14 @@ def read_file(file_path: str, dataset_root: Optional[str] = None) -> Dict[str, A
     """
     root = Path(dataset_root) if dataset_root else _get_dataset_root()
     full_path = root / file_path
+    
+    # Validate path to prevent directory traversal
+    if not _validate_path_within_root(root, full_path):
+        return {
+            "error": "Invalid path: directory traversal not allowed",
+            "dataset_root": str(root),
+            "file_path": file_path
+        }
     
     if not full_path.exists():
         return {
@@ -394,7 +463,7 @@ def read_file(file_path: str, dataset_root: Optional[str] = None) -> Dict[str, A
                 "type": "json",
                 "content": content
             }
-        except Exception as e:
+        except (json.JSONDecodeError, IOError, OSError) as e:
             return {
                 "error": f"Failed to parse JSON: {e}",
                 "full_path": str(full_path)
@@ -410,7 +479,7 @@ def read_file(file_path: str, dataset_root: Optional[str] = None) -> Dict[str, A
                 "type": "text",
                 "content": content
             }
-        except Exception as e:
+        except (IOError, OSError, UnicodeDecodeError) as e:
             return {
                 "error": f"Failed to read file: {e}",
                 "full_path": str(full_path)

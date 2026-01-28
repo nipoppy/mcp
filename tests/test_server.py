@@ -121,3 +121,43 @@ def test_missing_dataset():
     result = get_dataset_info("/nonexistent/path")
     
     assert "error" in result
+
+
+def test_directory_traversal_read_file():
+    """Test that directory traversal is prevented in read_file."""
+    from nipoppy_mcp.server import read_file
+    
+    result = read_file("../../README.md", str(TEST_DATASET))
+    
+    assert "error" in result
+    assert "directory traversal not allowed" in result["error"]
+
+
+def test_directory_traversal_list_files():
+    """Test that directory traversal is prevented in list_files_in_directory."""
+    from nipoppy_mcp.server import list_files_in_directory
+    
+    result = list_files_in_directory(str(TEST_DATASET), "../..")
+    
+    assert "error" in result
+    assert "directory traversal not allowed" in result["error"]
+
+
+def test_missing_pipeline_config():
+    """Test behavior when pipeline config doesn't exist."""
+    from nipoppy_mcp.server import get_pipeline_config
+    
+    result = get_pipeline_config("nonexistent-pipeline", "config.json", str(TEST_DATASET))
+    
+    assert "error" in result
+    assert "not found" in result["error"]
+
+
+def test_missing_subjects_directory():
+    """Test behavior when subjects directory doesn't exist."""
+    from nipoppy_mcp.server import list_subjects
+    
+    result = list_subjects(str(TEST_DATASET), "nonexistent")
+    
+    assert "error" in result
+    assert "not found" in result["error"]
