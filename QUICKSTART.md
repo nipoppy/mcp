@@ -53,16 +53,6 @@ The `list_files` tool takes a directory path and returns a list of file names (n
 - Uses: `list_files`
 - Returns: List of file names in the directory
 
-## Troubleshooting
-
-### Server won't start
-- Make sure you've installed the dependencies: `pip install -e .`
-- Check that Python 3.8+ is installed: `python --version`
-
-### Permission errors
-- Make sure you have read permissions for the directories you're trying to list
-- Try with a different directory that you have access to
-
 ## Next Steps
 
 - Read the full [README.md](README.md) for detailed information
