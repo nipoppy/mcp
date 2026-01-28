@@ -1,0 +1,24 @@
+{
+  "DATASET_NAME": "example_nipoppy_dataset",
+  "DATASET_DESCRIPTION": "Example Nipoppy dataset for testing the MCP interface",
+  "AUTHORS": [
+    "Brainhack 2026 Team"
+  ],
+  "VERSION": "1.0.0",
+  "PATHS": {
+    "BIDS": "bids",
+    "DERIVATIVES": "derivatives",
+    "SOURCEDATA": "sourcedata",
+    "PIPELINES": "pipelines",
+    "LOGS": "logs",
+    "SCRATCH": "scratch"
+  },
+  "PROCESSING": {
+    "DEFAULT_PIPELINE": "fmriprep",
+    "DEFAULT_VERSION": "20.2.7"
+  },
+  "BIDS_IGNORE_PATTERNS": [
+    ".*",
+    "tmp"
+  ]
+}

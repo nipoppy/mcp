@@ -1,0 +1,14 @@
+{
+  "pipeline": "freesurfer",
+  "version": "7.1.1",
+  "container": "docker://freesurfer/freesurfer:7.1.1",
+  "arguments": {
+    "directive": "all",
+    "parallel": true
+  },
+  "resources": {
+    "cpu": 4,
+    "memory": "16GB",
+    "time": "48h"
+  }
+}
