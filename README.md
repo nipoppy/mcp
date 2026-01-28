@@ -1,6 +1,6 @@
 # Nipoppy MCP Server
 
-A Model Context Protocol (MCP) interface for the [Nipoppy](https://github.com/nipoppy/nipoppy) neuroimaging dataset framework. This server exposes Nipoppy dataset information through MCP, allowing AI agents to query dataset configurations, manifests, pipelines, and structure.
+A Model Context Protocol (MCP) interface for the [Nipoppy](https://github.com/nipoppy/nipoppy) neuroimaging dataset framework. This server exposes a simple tool through MCP, allowing AI agents to list files in directories.
 
 ## What is Nipoppy?
 
@@ -8,27 +8,19 @@ Nipoppy is a lightweight framework for standardized organization and processing 
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is a standardized protocol that allows AI applications (LLMs) to access external tools and resources through a consistent interface. This server exposes Nipoppy dataset information as MCP tools.
+The Model Context Protocol (MCP) is a standardized protocol that allows AI applications (LLMs) to access external tools and resources through a consistent interface. This server exposes a file listing tool as an MCP tool.
 
 ## Features
 
-This MCP server provides the following tools to query Nipoppy datasets:
+This MCP server provides the following tool:
 
-- **`get_dataset_info`**: Read the global_config.json configuration file
-- **`get_manifest`**: Read the manifest.csv or manifest.tsv file
-- **`list_pipelines`**: List all available processing pipelines
-- **`get_pipeline_config`**: Read configuration for a specific pipeline
-- **`list_subjects`**: List subjects in BIDS or derivatives directories
-- **`get_directory_structure`**: View the dataset directory structure
-- **`list_files_in_directory`**: List files in a specific directory
-- **`read_file`**: Read any file within the dataset
+- **`list_files`**: List files in a given directory
 
 ## Installation
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- A Nipoppy dataset (or create a test dataset)
 
 ### Install the package
 
@@ -55,6 +47,9 @@ export NIPOPPY_DATASET_ROOT=/path/to/your/nipoppy/dataset
 
 # Run the server
 python -m nipoppy_mcp.server
+```bash
+# Run the server
+python -m nipoppy_mcp.server
 ```
 
 #### 2. Configure with Claude Desktop
@@ -66,55 +61,19 @@ Add to your Claude Desktop configuration file (`~/Library/Application Support/Cl
   "mcpServers": {
     "nipoppy": {
       "command": "python",
-      "args": ["-m", "nipoppy_mcp.server"],
-      "env": {
-        "NIPOPPY_DATASET_ROOT": "/path/to/your/nipoppy/dataset"
-      }
+      "args": ["-m", "nipoppy_mcp.server"]
     }
   }
 }
 ```
 
-### Using the Tools
+### Using the Tool
 
-Once connected to an MCP-compatible client, you can use natural language to query your Nipoppy dataset:
+Once connected to an MCP-compatible client, you can use natural language to list files in directories:
 
 **Example queries:**
-- "What's in the global configuration?"
-- "List all subjects in the BIDS directory"
-- "Show me the available pipelines"
-- "What's the structure of the dataset?"
-- "Read the fmriprep configuration"
-
-### Dataset Root Configuration
-
-The server determines the dataset root in the following order:
-
-1. `dataset_root` parameter passed to tool functions
-2. `NIPOPPY_DATASET_ROOT` environment variable
-3. Current working directory
-
-## Example Nipoppy Dataset Structure
-
-A typical Nipoppy dataset has this structure:
-
-```
-nipoppy_dataset/
-├── global_config.json      # Main configuration file
-├── manifest.tsv            # Subject/session tracking
-├── bids/                   # BIDS-compliant raw data
-│   ├── sub-001/
-│   ├── sub-002/
-│   └── ...
-├── derivatives/            # Processed data outputs
-├── pipelines/              # Pipeline configurations
-│   ├── fmriprep-20.2.7/
-│   ├── freesurfer-7.1.1/
-│   └── ...
-├── sourcedata/            # Original raw data
-├── logs/                  # Processing logs
-└── scratch/               # Temporary files
-```
+- "List files in /path/to/directory"
+- "What files are in my home directory?"
 
 ## Development
 

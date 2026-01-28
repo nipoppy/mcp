@@ -1,5 +1,0 @@
-participant_id	session	visit	datatype	participant_dicom_dir	in_raw_imaging	in_bids
-sub-001	ses-01	01	anat,func	/rawdata/sub-001/ses-01	True	True
-sub-001	ses-02	02	anat,func	/rawdata/sub-001/ses-02	True	True
-sub-002	ses-01	01	anat,func	/rawdata/sub-002/ses-01	True	True
-sub-003	ses-01	01	anat	/rawdata/sub-003/ses-01	True	False
