@@ -77,7 +77,7 @@ def _get_pipeline_steps(
     return [step.NAME for step in pipeline_config.STEPS]
 
 
-@mcp.resource("dataset://{nipoppy_root}")
+@mcp.tool()
 def get_dataset_info(nipoppy_root: str) -> dict:
     """
     Get basic information about the Nipoppy dataset.
