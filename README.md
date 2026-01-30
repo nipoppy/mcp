@@ -12,9 +12,34 @@ The Model Context Protocol (MCP) is a standardized protocol that allows AI appli
 
 ## Features
 
-This MCP server provides the following tool:
+This MCP server provides comprehensive access to Nipoppy neuroimaging datasets through both **tools** and **resources**:
 
-- **`list_files`**: List files in a given directory
+### MCP Resources (Automatic Context)
+Context information automatically available to AI agents without function calls:
+
+- **`nipoppy://config`** - Global dataset configuration and metadata
+- **`nipoppy://manifest`** - Dataset structure manifest (participants/sessions/datatypes)
+- **`nipoppy://status/curation`** - Data availability at different curation stages
+- **`nipoppy://status/processing`** - Pipeline completion status across participants/sessions
+- **`nipoppy://pipelines/{pipeline_name}/{version}/config`** - Individual pipeline configuration
+- **`nipoppy://pipelines/{pipeline_name}/{version}/descriptor`** - Boutiques pipeline descriptor
+- **`nipoppy://demographics`** - De-identified participant demographic information
+- **`nipoppy://bids/description`** - BIDS dataset description and metadata
+
+### MCP Tools (On-demand Functions)
+
+#### Primary Tools (Refactored & Enhanced)
+- **`get_participants_sessions`** - Unified participant/session query with filtering by data stage
+- **`get_dataset_info`** - Enhanced dataset overview with configurable detail levels  
+- **`navigate_dataset`** - File path and configuration access with smart path resolution
+
+#### Legacy Tools (Deprecated)
+- **`list_manifest_participants_sessions`** - Use `get_participants_sessions(data_stage="all")` instead
+- **`list_manifest_imaging_participants_sessions`** - Use `get_participants_sessions(data_stage="imaging")` instead
+- **`get_pre_reorg_participants_sessions`** - Use `get_participants_sessions(data_stage="downloaded")` instead
+- **`get_post_reorg_participants_sessions`** - Use `get_participants_sessions(data_stage="organized")` instead
+- **`get_bids_participants_sessions`** - Use `get_participants_sessions(data_stage="bidsified")` instead
+- **`list_processed_participants_sessions`** - Use `get_participants_sessions(data_stage="processed", ...)` instead
 
 ## Installation
 
@@ -67,13 +92,45 @@ Add to your Claude Desktop configuration file (`~/Library/Application Support/Cl
 }
 ```
 
-### Using the Tool
+### Using the Tools and Resources
 
-Once connected to an MCP-compatible client, you can use natural language to list files in directories:
+Once connected to an MCP-compatible client, you can access Nipoppy dataset information through both automatic context and explicit tool calls.
 
-**Example queries:**
-- "List files in /path/to/directory"
-- "What files are in my home directory?"
+**Setting the Dataset Root:**
+The server requires the `NIPOPPY_DATASET_ROOT` environment variable to be set for resources to work:
+
+```bash
+export NIPOPPY_DATASET_ROOT=/path/to/your/nipoppy/dataset
+```
+
+**Example Queries:**
+
+#### Dataset Overview (using tools)
+- "Get information about this dataset"
+- "How many participants and sessions are in this dataset?"
+- "What pipelines are installed and what's their status?"
+
+#### Participant/Session Queries (using tools)
+- "List all participants and sessions in the dataset"
+- "Show me participants with imaging data"
+- "Which participants have completed fMRIPrep processing?"
+- "Get participants with BIDS-converted data"
+
+#### Navigation and Configuration (using tools)  
+- "Navigate to the fMRIPrep output directory"
+- "Show me the configuration for the latest MRIQC pipeline"
+- "Get the path to the derivatives directory"
+
+#### Context Access (using resources)
+- The server automatically provides context through resources, so you can ask about:
+  - "What's the global configuration of this dataset?"
+  - "Show me the dataset manifest"
+  - "What's the curation status of the data?"
+  - "Get the BIDS dataset description"
+
+#### Pipeline Information (using resources)
+- "Get the configuration for fMRIPrep version 23.2.0"
+- "Show me the Boutiques descriptor for the MRIQC pipeline"
 
 ## Development
 
@@ -85,18 +142,102 @@ pip install -e ".[dev]"
 
 # Run tests
 pytest
+
+# Or run basic import tests
+python -c "from nipoppy_mcp.server import mcp; print('✅ MCP server imports successfully')"
+```
+
+### Testing Implementation
+
+The refactored implementation includes comprehensive error handling and validation. Test with:
+
+```bash
+# Test basic functionality
+python -c "
+from nipoppy_mcp.server import get_participants_sessions, get_dataset_info, navigate_dataset
+print('✅ Refactored tools imported successfully')
+
+# Test validation (these should raise appropriate errors)
+get_participants_sessions('/fake/path', data_stage='invalid_stage')
+navigate_dataset('/fake/path', path_type='invalid_type')
+"
+
+# Test resource functions
+python -c "
+from nipoppy_mcp.server import get_dataset_config, get_dataset_manifest
+print('✅ Resource functions imported successfully')
+"
 ```
 
 ### Project Structure
 
 ```
-mcp/
+nipoppy-mcp/
 ├── nipoppy_mcp/
 │   ├── __init__.py
 │   └── server.py          # Main MCP server implementation
+│                          # - 8 MCP resources (automatic context)
+│                          # - 3 refactored tools (unified interface) 
+│                          # - 7 deprecated tools (backward compatibility)
 ├── tests/                 # Test files
 ├── pyproject.toml        # Project configuration
 └── README.md
+```
+
+### Implementation Details
+
+The refactored server provides:
+
+- **8 MCP Resources**: Automatic context loading of dataset metadata, configuration, and status
+- **3 Unified Tools**: Replace 7 previous specialized tools with a unified interface
+- **7 Deprecated Tools**: Maintained for backward compatibility with deprecation warnings
+- **Strict Validation**: Comprehensive error handling and parameter validation
+- **Type Safety**: Full type hints and structured data returns
+
+### Migration Guide
+
+For existing users migrating from the old tools:
+
+| Old Tool | New Tool Call |
+|-----------|---------------|
+| `list_manifest_participants_sessions()` | `get_participants_sessions(data_stage="all")` |
+| `list_manifest_imaging_participants_sessions()` | `get_participants_sessions(data_stage="imaging")` |
+| `get_pre_reorg_participants_sessions()` | `get_participants_sessions(data_stage="downloaded")` |
+| `get_post_reorg_participants_sessions()` | `get_participants_sessions(data_stage="organized")` |
+| `get_bids_participants_sessions()` | `get_participants_sessions(data_stage="bidsified")` |
+| `list_processed_participants_sessions(name, ver, step)` | `get_participants_sessions(data_stage="processed", pipeline_name=name, pipeline_version=ver, pipeline_step=step)` |
+
+### Example Usage
+
+The repository includes `example_usage.py` to demonstrate the refactored functionality:
+
+```bash
+# Set your dataset path
+export NIPOPPY_DATASET_ROOT=/path/to/your/nipoppy/dataset
+
+# Run the example
+python example_usage.py
+```
+
+This script demonstrates:
+- Enhanced dataset information retrieval
+- Unified participant/session filtering by data stage
+- Dataset navigation and path resolution
+- Error handling and validation
+
+### Quick Start with Resources
+
+For immediate access to dataset information (requires NIPOPPY_DATASET_ROOT):
+
+```python
+import os
+os.environ['NIPOPPY_DATASET_ROOT'] = '/path/to/dataset'
+
+from nipoppy_mcp.server import get_dataset_config
+
+# Resources are available as direct function calls
+config = get_dataset_config()  # Auto-loads from environment variable
+print(f"Dataset has {len(config['installed_pipelines'])} pipelines")
 ```
 
 ## Contributing
